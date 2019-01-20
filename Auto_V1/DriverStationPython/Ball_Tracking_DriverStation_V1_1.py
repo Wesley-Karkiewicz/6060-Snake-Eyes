@@ -1,0 +1,172 @@
+#stuff needed to run this program
+#ment to only run when connected to robot
+#on the driver station
+from collections import deque
+from imutils.video import VideoStream
+from pathlib import Path
+from networktables import NetworkTables
+import numpy as np
+import threading
+import argparse
+import cv2
+import imutils
+import time
+
+#Connect to networkTable before doing anything
+cond = threading.Condition()
+notified = [False]
+
+def connectionListener(connected, info):
+    print(info , '; Connected=%s' %connected)
+    with cond:
+        notified[0] = True
+        cond.notify()
+
+NetworkTables.initialize(server='10.60.60.2')
+NetworkTables.addConnectionListener(connectionListener, immediateNotify=True)
+
+with cond:
+    print("Waiting")
+    if not notified[0]:
+        cond.wait()
+
+print("Connected")
+sd = NetworkTables.getTable('SmartDashboard')
+
+
+#View Feed From a Video or go to webcame based off of argument
+ap= argparse.ArgumentParser()
+ap.add_argument("-v", "--video", help="path to the (optional) video file")
+ap.add_argument("-b", "--buffer", type=int, default=64, help="max buffer size")
+args = vars(ap.parse_args())
+
+
+
+#Setup values to track the purple Bouncy ball
+#can change this to different colors
+purpleLower= (0,253,225)
+purpleUpper = (15,255,255)
+pts = deque(maxlen=args["buffer"])
+
+#font for text
+font =cv2.FONT_HERSHEY_SIMPLEX
+
+#if no video was givin default to WebCam 0
+if not args.get("video", False):
+    vs= VideoStream(src="http://10.60.60.99:1181/?action=stream").start()
+
+#otherwise, grab a reference to the video file
+else:
+    vs = cv2.VideoCapture(args["video"])
+
+#start recording to a file, if a file alreadt exists, makes a new file
+Video_Number = 0
+#while True:
+    #Video_File = Path("video/Ball_Tracking_V1_%s.avi" % Video_Number)
+    #if Video_File.is_file():
+        #Video_Number += 1
+    #else:
+        #break
+#fourcc = cv2.VideoWriter_fourcc(*'XVID')
+#out = cv2.VideoWriter("video/Ball_Tracking_V1_%s.avi" % Video_Number, fourcc, 20.0,(600,400))
+
+
+#give the program time to get started
+time.sleep(1.0)
+
+#the loop that does the fancys
+while True:
+    #if the q key is pressed, break free
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+    #get frame data
+    frame = vs.read()
+
+    #frame will be different depending on if we are viewing a camera or vid
+    frame = frame[1] if args.get("video",False) else frame
+
+    #if no frame arrives, the vid is over or camera is unavalible
+    if frame is None:
+        sd.putNumber('GettingFrameData',True)
+        break
+    else:
+        sd.putNumber('GettingFrameData',True)
+    #resize image, flip it, blur it, and make a HSV color space
+    frame = imutils.resize(frame, width=600)
+    frame = cv2.flip(frame, 1)
+    #cv2.imshow("Orignal frame", frame)
+    blurred = cv2.GaussianBlur(frame, (11,11), 0)
+    hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
+
+    #Make a mask for Green then run a bunch of dolations and
+    #erosions to remove any small blobs still in the mask
+    mask = cv2.inRange(hsv, purpleLower, purpleUpper)
+    mask = cv2.erode(mask, None, iterations = 2)
+    mask= cv2.dilate(mask, None, iterations = 2)
+    cv2.imshow("mask", mask)
+
+    #find the Contours in the mask and initialize the
+    #current (x,y) center of the ball
+    cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts = imutils.grab_contours(cnts)
+    center = None
+    #cv2.imshow("contours", cnts)
+    #only do stuff if a single contor was found
+    if len(cnts) > 0:
+        #find the largest contour in the mask, then use it
+        #to compute the minimum enclosing circle and centroid
+        c = max(cnts, key=cv2.contourArea)
+        ((x,y), radius) = cv2.minEnclosingCircle(c)
+        M = cv2.moments(c)
+        center = (int(M["m10"] / M["m00"]), int (M["m01"] / M["m00"]))
+
+        #only proceeed if the radius meets a minimum size
+        if radius > 35:
+            cv2.circle(frame, (int(x), int(y)), int(radius), (255,255,8), 2)
+            cv2.circle(frame, center, 3, (0,0,225), -1)
+            sd.putNumber('X',x)
+            sd.putNumber('Y',y)
+            sd.putNumber('R', radius)
+        else:
+            sd.putNumber('X',-1)
+            sd.putNumber('Y',-1)
+            sd.putNumber('R',-1)
+    else:
+        sd.putNumber('X',-1)
+        sd.putNumber('Y',-1)
+        sd.putNumber('R',-1)
+            
+    #update the points queue
+    pts.appendleft(center)
+
+    #go over all tracked points
+    for i in range(1, len(pts)):
+        #if either of the tracked poitns are None, ignor them
+        if pts[i -1 ] is None or pts[i] is None:
+            continue
+        
+        # else calculate Line thickness and put them on screen
+        thickness = int(np.sqrt(args["buffer"] / float(i + 1)) *2.5)
+        cv2.line(frame, pts[i - 1], pts[i], (0,0,255), thickness)
+
+    #display text by the ball if a center is founded
+    if center is not None:
+        TextOffSet = (center[0] + 25, center[1] - 25)
+        lineOffset = (center[0] + 5, center[1] - 5)
+        #create Line from center to text
+        cv2.line(frame, lineOffset, TextOffSet, (68,255,98), 1)
+        cv2.putText(frame,'(X:%s,Y:%s)' %(center),TextOffSet , font, 1, (105,77,255), 2, cv2.LINE_AA)
+    
+    #display screen
+    #out.write(frame)
+    cv2.imshow("frame", frame)
+
+#clean up when the job is done     
+if not args.get("video", False):
+    vs.stop()
+
+else:
+    vs.release()
+    
+#out.release() 
+cv2.destroyAllWindows()
