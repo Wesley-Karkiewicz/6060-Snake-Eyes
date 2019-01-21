@@ -20,3 +20,6 @@ team out with vision processing
 
 If you got any questions, Concerns, complants, or comments feel free to
 Message me or email me at KarkiewiczWesley@gmail.com
+
+Also here is a Video of all this code in action as of 1/19/19 
+https://youtu.be/wcj5wIiPE_A
