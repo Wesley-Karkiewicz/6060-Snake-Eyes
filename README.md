@@ -7,13 +7,13 @@ This Code is pretty messy rn, I will be cleaning it up, adding more
 features as time passes, and make it easier for another team to use
 
 DriveStation Contains all the Code that should run on the machine that 
-is serving as the drivestation for your robot. This will contain Python
-Scripts to do client side vision process and SmartDashboard setups
+is serving as the DriveDtation for your robot. This will contain Python
+Scripts to do client side vision processing and SmartDashboard setups
 Currently You will need to run this for the Auto to work since I havent 
 gotten the python script to work on the Pi's Side yet
 
 RaspberryPi conatins all the code that will run on the raspberry Pi's
-robot side. Its, empty right now but I am porting the driver sation vision code 
+robot side. Its, empty right now but I am porting the DriverStation vision code 
 to the raspberry pi so it can do Vision processing server side. It also Has the 
 Json Config Files to the raspberry Pi camera V1. 
 
