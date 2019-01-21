@@ -1,1 +1,144 @@
-[{"name":"connect_verbose","value":1},{"name":"contrast","value":69},{"name":"saturation","value":88},{"name":"red_balance","value":1100},{"name":"blue_balance","value":1635},{"name":"horizontal_flip","value":false},{"name":"vertical_flip","value":false},{"name":"power_line_frequency","value":1},{"name":"sharpness","value":51},{"name":"color_effects","value":0},{"name":"rotate","value":0},{"name":"color_effects_cbcr","value":32896},{"name":"video_bitrate_mode","value":0},{"name":"video_bitrate","value":10000000},{"name":"repeat_sequence_header","value":false},{"name":"h264_i_frame_period","value":60},{"name":"h264_level","value":11},{"name":"h264_profile","value":4},{"name":"auto_exposure","value":1},{"name":"exposure_time_absolute","value":1000},{"name":"exposure_dynamic_framerate","value":false},{"name":"auto_exposure_bias","value":12},{"name":"white_balance_auto_preset","value":0},{"name":"image_stabilization","value":false},{"name":"iso_sensitivity","value":0},{"name":"iso_sensitivity_auto","value":0},{"name":"exposure_metering_mode","value":0},{"name":"scene_mode","value":0},{"name":"compression_quality","value":30}]
+{
+    "fps": 28,
+    "height": 120,
+    "pixel format": "mjpeg",
+    "properties": [
+        {
+            "name": "connect_verbose",
+            "value": 1
+        },
+        {
+            "name": "raw_brightness",
+            "value": 55
+        },
+        {
+            "name": "brightness",
+            "value": 55
+        },
+        {
+            "name": "raw_contrast",
+            "value": 38
+        },
+        {
+            "name": "contrast",
+            "value": 69
+        },
+        {
+            "name": "raw_saturation",
+            "value": 76
+        },
+        {
+            "name": "saturation",
+            "value": 88
+        },
+        {
+            "name": "red_balance",
+            "value": 1100
+        },
+        {
+            "name": "blue_balance",
+            "value": 1635
+        },
+        {
+            "name": "horizontal_flip",
+            "value": false
+        },
+        {
+            "name": "vertical_flip",
+            "value": false
+        },
+        {
+            "name": "power_line_frequency",
+            "value": 1
+        },
+        {
+            "name": "raw_sharpness",
+            "value": 2
+        },
+        {
+            "name": "sharpness",
+            "value": 51
+        },
+        {
+            "name": "color_effects",
+            "value": 0
+        },
+        {
+            "name": "rotate",
+            "value": 0
+        },
+        {
+            "name": "color_effects_cbcr",
+            "value": 32896
+        },
+        {
+            "name": "video_bitrate_mode",
+            "value": 0
+        },
+        {
+            "name": "video_bitrate",
+            "value": 10000000
+        },
+        {
+            "name": "repeat_sequence_header",
+            "value": false
+        },
+        {
+            "name": "h264_i_frame_period",
+            "value": 60
+        },
+        {
+            "name": "h264_level",
+            "value": 11
+        },
+        {
+            "name": "h264_profile",
+            "value": 4
+        },
+        {
+            "name": "auto_exposure",
+            "value": 1
+        },
+        {
+            "name": "exposure_time_absolute",
+            "value": 1000
+        },
+        {
+            "name": "exposure_dynamic_framerate",
+            "value": false
+        },
+        {
+            "name": "auto_exposure_bias",
+            "value": 12
+        },
+        {
+            "name": "white_balance_auto_preset",
+            "value": 0
+        },
+        {
+            "name": "image_stabilization",
+            "value": false
+        },
+        {
+            "name": "iso_sensitivity",
+            "value": 0
+        },
+        {
+            "name": "iso_sensitivity_auto",
+            "value": 0
+        },
+        {
+            "name": "exposure_metering_mode",
+            "value": 0
+        },
+        {
+            "name": "scene_mode",
+            "value": 0
+        },
+        {
+            "name": "compression_quality",
+            "value": 30
+        }
+    ],
+    "width": 160
+}
