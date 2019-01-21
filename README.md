@@ -1,4 +1,4 @@
-This repo contains all the Code we will be using for the 2019 Season 
+This repo contains all the Code that the Circuit Seprents(6060) will be using for the 2019 Season 
 
 Auto_v1 contains all the java code that runs on the roboRio, In order
 For this program to work on your bot you will need to change it to your
