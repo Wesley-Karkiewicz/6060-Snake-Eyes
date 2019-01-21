@@ -18,8 +18,8 @@ to the raspberry pi so it can do Vision processing server side. It also Has the
 Json Config Files to the raspberry Pi camera V1. 
 
 This is a definite work in progress, still learning a lot of things(mainly 
-how to use github properly) but hopefully his repo ends up helping another 
-team out with vision processing 
+how to use github properly) but hopefully his repo ends up helping out other 
+teams out with vision processing 
 
 If you got any questions, Concerns, complants, or comments feel free to
 Message me or email me at KarkiewiczWesley@gmail.com
