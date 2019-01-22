@@ -46,10 +46,13 @@ public class Robot extends SampleRobot {
 
   @Override
   public void robotInit() {
-   LeftDrive.configFactoryDefault();
-  // LeftDrive.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative, 0,30);
-   RightDrive.configFactoryDefault();
-  //LeftDrive.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative, 0,30);
+    //LeftDrive.configFactoryDefault();
+    LeftDrive.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative);
+    //RightDrive.configFactoryDefault();
+    RightDrive.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative);
+
+    LeftDrive2.follow(LeftDrive);
+    RightDrive2.follow(RightDrive);
 
   // Set up and populate the networkTable
   NetworkTableInstance inst = NetworkTableInstance.getDefault();
@@ -129,7 +132,9 @@ public class Robot extends SampleRobot {
   
   @Override
   public void operatorControl() {
-   
+    //Delcare Varibles and lists
+    List<Double> ValuesLeft = new ArrayList<Double>();
+    List<Double> ValuesRight = new ArrayList<Double>();
     double left_trigger = Xbox.getRawAxis(2);
     
     boolean Button1 = Xbox.getRawButton(1);
@@ -157,7 +162,7 @@ public class Robot extends SampleRobot {
 
   
       if(Right > Dead_band || Right < -Dead_band){
-        Right = Xbox.getRawAxis(5) * Sensitivity;
+        Right = Xbox.getRawAxis(5) * (Sensitivity + 0.03);
       } else {
        Right=0;
       }
@@ -167,12 +172,11 @@ public class Robot extends SampleRobot {
       left_trigger = Xbox.getRawAxis(2);
 
 
-      LeftDrive.set(ControlMode.PercentOutput, AveragedInput1(left));
-      RightDrive.set(ControlMode.PercentOutput, -AveragedInput2(Right));
+      LeftDrive.set(ControlMode.PercentOutput, -RollingAverage(left,ValuesLeft,25));
+      RightDrive.set(ControlMode.PercentOutput, RollingAverage(Right,ValuesRight,25));
 
      
-      LeftDrive2.follow(LeftDrive);
-      RightDrive2.follow(RightDrive);
+      
 
       Lift1.set(ControlMode.PercentOutput, -left_trigger);
       Lift2.set(ControlMode.PercentOutput, left_trigger);
@@ -194,12 +198,97 @@ public class Robot extends SampleRobot {
    * Runs during test mode.
    */
   @Override
+
+  //This mode is used to tune sensors and trouble shoot systems
   public void test() {
+    LeftDrive.getSensorCollection().setPulseWidthPosition(0, 50);
+    RightDrive.getSensorCollection().setPulseWidthPosition(0,50);
+    
+    Timer.delay(0.505);
+
+    double initLeftEncoder = LeftDrive.getSensorCollection().getPulseWidthPosition();
+    double initRightEncoder = RightDrive.getSensorCollection().getPulseWidthPosition();
+    //Change this to what to how many steps it takes 
+    double OneRotation = 10240;
+     
+    //This will hold previous Rotations traveled
+    double LastLeftRT = 0;
+    double LastRightRT = 0;
+
+    double LeftRPS =0;
+    double RightRPS =0; 
+    //Values for PID loops
+    double RPS_SetPoint = 3;
+
+    double Kp = 4.9;
+    double Ki = 0.085;
+    double Kd = 0.95;
+    double Gain = 0.01;
+
+    double IError = 0;
+    double PreviousError = 0;
+    //used to keep track of time
+    double PreviousTimeLeft = Timer.getFPGATimestamp();
+    double PreviousTimeRight = Timer.getFPGATimestamp();
+
+    double count =0;
+    while(isEnabled() && isTest()){
+      double CurrentTimeLeft = Timer.getFPGATimestamp();
+      double CurrentTimeRight = Timer.getFPGATimestamp();
+
+      double LeftStick = Xbox.getRawAxis(1);
+      double RightStick = Xbox.getRawAxis(5);
+      LeftDrive.set(ControlMode.PercentOutput, LeftStick);
+      RightDrive.set(ControlMode.PercentOutput, RightStick);
+
+      RightDrive2.follow(RightDrive);
+      double LeftEncoder = LeftDrive.getSensorCollection().getPulseWidthPosition() - initLeftEncoder;
+      double RightEncoder = RightDrive.getSensorCollection().getPulseWidthPosition() - initRightEncoder;
+
+      //Since the Loop updates at 200 hz, this will give us te current Rotations Traveled per second
+      double CurrentLeftRT = (LeftEncoder/OneRotation);
+      double CurrentRightRT = (RightEncoder/OneRotation);
+      
+      //This will get us the Current RPS of the Left and right Sides of the Bot
+      //WE need to find out how much time it took between sensor reading inorder
+      //to find out the true RPS of the wheels
+      if((CurrentLeftRT -  LastLeftRT) != 0) {
+       LeftRPS =  -((CurrentLeftRT -  LastLeftRT) * (1/(CurrentTimeLeft-PreviousTimeLeft)));
+       //System.out.println("This Took: " + 1/(CurrentTime-PreviousTime) + "Seconds");
+       PreviousTimeLeft =  CurrentTimeLeft;
+      } 
+      
+
+      if((CurrentRightRT -  LastRightRT) != 0){
+        RightRPS = (CurrentRightRT -  LastRightRT)* (1/(CurrentTimeRight-PreviousTimeRight));
+        PreviousTimeRight =  CurrentTimeRight;
+      } 
+      
+
+      double Error = RPS_SetPoint - LeftRPS;
+       IError = IError + Error;
+      double P = Error * Kp;
+      double I = IError * Ki;
+      double D = PreviousError - Error;
+
+      double Output = (P + I + D) * Gain;
+      if(count > 100){
+      LeftDrive.set(ControlMode.PercentOutput, Output);
+      System.out.println("Left RPS: "+ LeftRPS + " Left RPS_Setpoint: " + RPS_SetPoint + "Motor Power: " + Output);
+    }
+      LastLeftRT = CurrentLeftRT;
+      LastRightRT = CurrentRightRT;
+      PreviousError = Error;
+      count = count + 1;
+      Timer.delay(0.005);
+    }
+
+
   }
-  int buffer = 25;
-  //public List<E> Values = new ArrayList<E>();
-  List<Double> Values = new ArrayList<Double>();
-  public double AveragedInput1(double input){
+  
+ 
+
+  public double RollingAverage(double input, List<Double> Values, int buffer){
       double Rounded_Input = Math.round((input*1000));
       //System.out.println(Rounded_Input);
       if(Values.size() > buffer){
@@ -216,28 +305,8 @@ public class Robot extends SampleRobot {
       
       double Average = (Total / buffer) ;
       
-      return Math.round(Average) * -0.001;
+      return Math.round(Average) * 0.001;
   }
 
-  List<Double> Values2 = new ArrayList<Double>();
-  public double AveragedInput2(double input){
-    double Rounded_Input = Math.round((input*1000));
-    //System.out.println(Rounded_Input);
-    if(Values2.size() > buffer){
-      Values2.remove(0);
-      Values2.add(Rounded_Input);
-    } else {
-      Values2.add(Rounded_Input);
-    }
-
-    double Total = 0;
-    for(int x = 0; x < Values2.size(); x++){
-      Total = Total + Values2.get(x);
-    }
-    
-    double Average = (Total / buffer) ;
-    
-    return Math.round(Average) * -0.001;
-}
 }
 
