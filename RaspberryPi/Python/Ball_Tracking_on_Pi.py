@@ -147,11 +147,14 @@ def TrackTheBall(frame, sd):
     #Blur out the Image
     blurred = cv2.GaussianBlur(frame, (2,2), 0)
     hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
-     #Make a mask for Green then run a bunch of dolations and
+    
+    #Make a mask for the pixals that meet yhe HSV filter 
+    #then run a bunch of dolations and
     #erosions to remove any small blobs still in the mask
     mask = cv2.inRange(hsv, BallLower, BallUpper)
     mask = cv2.erode(mask, None, iterations = 2)
     mask= cv2.dilate(mask, None, iterations = 2)
+    
     #find the Contours in the mask and initialize the
     #current (x,y) center of the ball
     cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -167,6 +170,7 @@ def TrackTheBall(frame, sd):
 
         #if the dectected contour has a radius big enough, we will send it
         if radius > 5:
+            #draw a circle around the target and publish values to smart dashboard
             cv2.circle(frame, (int(x), int(y)), int(radius), (255,255,8), 2)
             cv2.circle(frame, center, 3, (0,0,225), -1)
             sd.putNumber('rPi_X',x)
@@ -223,8 +227,8 @@ if __name__ == "__main__":
         if GotFrame  == 0:
             outputStream.notifyError(CvSink.getError())
             continue
-        print("yeet")
-        cv2.line(img, (0,0), (10,10), (255,255,255), 7)
+        img = TrackTheBall(img, SmartDashBoardValues)
+        
         outputStream.putFrame(img)
 
 
