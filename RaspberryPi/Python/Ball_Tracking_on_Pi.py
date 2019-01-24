@@ -18,7 +18,8 @@ import time
 import sys
 import numpy as np
 import cv2
-from cscore import CameraServer, VideoSource
+
+from cscore import CameraServer, VideoSource, CvSource, VideoMode, CvSink, UsbCamera
 from networktables import NetworkTablesInstance
 
 #   JSON format:
@@ -133,8 +134,8 @@ def readConfig():
 
 #This should be a class lowkey but it'll work
 def TrackTheBall(frame, sd):
-    BallLower= (0,253,225)
-    BallUpper = (15,255,255)
+    BallLower= (0,103,105)
+    BallUpper = (150,255,255)
     #if no frame arrives, the vid is over or camera is unavalible
     if frame is None:
         sd.putNumber('GettingFrameData',False)
@@ -142,11 +143,11 @@ def TrackTheBall(frame, sd):
         sd.putNumber('GettingFrameData',True)
 
 
-    frame = cv2.flip(frame, 1)
+    #frame = cv2.flip(frame, 1)
 
     #Blur out the Image
-    blurred = cv2.GaussianBlur(frame, (2,2), 0)
-    hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
+    #blurred = cv2.GaussianBlur(frame, (11,11), 0)
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     
     #Make a mask for the pixals that meet yhe HSV filter 
     #then run a bunch of dolations and
@@ -157,7 +158,7 @@ def TrackTheBall(frame, sd):
     
     #find the Contours in the mask and initialize the
     #current (x,y) center of the ball
-    cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    a, cnts , b= cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     center = None
     #only do stuff if a single contor was found
     if len(cnts) > 0:
@@ -169,19 +170,20 @@ def TrackTheBall(frame, sd):
         center = (int(M["m10"] / M["m00"]), int (M["m01"] / M["m00"]))
 
         #if the dectected contour has a radius big enough, we will send it
-        if radius > 5:
+        if radius > 10:
             #draw a circle around the target and publish values to smart dashboard
             cv2.circle(frame, (int(x), int(y)), int(radius), (255,255,8), 2)
             cv2.circle(frame, center, 3, (0,0,225), -1)
-            sd.putNumber('rPi_X',x)
-            sd.putNumber('rPi_Y',y)
-            sd.putNumber('rPi_R', radius)
+            sd.putNumber('X',x)
+            sd.putNumber('Y',y)
+            sd.putNumber('R', radius)
         else:
             #let the RoboRio Know no target has been detected with -1
-            sd.putNumber('rPi_X', -x)
-            sd.putNumber('rPi_Y', -y)
-            sd.putNumber('rPi_R', -radius)
+            sd.putNumber('X', -x)
+            sd.putNumber('Y', -y)
+            sd.putNumber('R', -radius)
             
+    print("Sent processed frame")
     return frame
 
 
@@ -205,8 +207,10 @@ if __name__ == "__main__":
     print("Connecting to camera")
     cs = CameraServer.getInstance()
     cs.enableLogging()
-
-    camera = cs.startAutomaticCapture()
+    Camera = UsbCamera('RPi Camero 0', 0)
+    Camera.setResolution(160,120)
+    cs.addCamera(Camera)
+    
     print("connected")
 
     #This Is the object we pull the imgs for OpenCV magic
@@ -214,10 +218,10 @@ if __name__ == "__main__":
     
     #This will send the process frames to the Driver station
     #allowing the us to see what OpenCV sees
-    outputStream = cs.putVideo("Camera RPi Camera 0", 160,120)
+    outputStream = cs.putVideo("Processed Frames", 160,120)
 
     #buffer to store img data
-    img = np.zeros(shape=(260,260,3), dtype=np.uint8)
+    img = np.zeros(shape=(160,120,3), dtype=np.uint8)
     # loop forever
     while True:
         #Quick little FYI, This will throw a Unicode Decode Error first time around
@@ -228,7 +232,7 @@ if __name__ == "__main__":
             outputStream.notifyError(CvSink.getError())
             continue
         img = TrackTheBall(img, SmartDashBoardValues)
-        
+        #print(img)
         outputStream.putFrame(img)
 
 
