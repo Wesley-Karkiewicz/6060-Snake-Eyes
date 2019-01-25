@@ -1,0 +1,37 @@
+<xml version="1.0">
+<dashboard>
+	<widget field="R" type="Number" class="edu.wpi.first.smartdashboard.gui.elements.TextBox">
+		<location x="0" y="69"/>
+	</widget>
+	<widget field="Y" type="Number" class="edu.wpi.first.smartdashboard.gui.elements.TextBox">
+		<location x="0" y="21"/>
+	</widget>
+	<widget field="X" type="Number" class="edu.wpi.first.smartdashboard.gui.elements.TextBox">
+		<location x="0" y="0"/>
+	</widget>
+	<widget field="GettingFrameData" type="Number" class="edu.wpi.first.smartdashboard.gui.elements.TextBox">
+		<location x="0" y="48"/>
+	</widget>
+	<widget field="HU" type="Number" class="edu.wpi.first.smartdashboard.gui.elements.TextBox">
+		<location x="162" y="27"/>
+	</widget>
+	<widget field="HL" type="Number" class="edu.wpi.first.smartdashboard.gui.elements.TextBox">
+		<location x="164" y="9"/>
+	</widget>
+	<widget field="VU" type="Number" class="edu.wpi.first.smartdashboard.gui.elements.TextBox">
+		<location x="381" y="29"/>
+	</widget>
+	<widget field="VL" type="Number" class="edu.wpi.first.smartdashboard.gui.elements.TextBox">
+		<location x="383" y="11"/>
+	</widget>
+	<widget field="SU" type="Number" class="edu.wpi.first.smartdashboard.gui.elements.TextBox">
+		<location x="273" y="30"/>
+	</widget>
+	<widget field="SL" type="Number" class="edu.wpi.first.smartdashboard.gui.elements.TextBox">
+		<location x="275" y="10"/>
+	</widget>
+</dashboard>
+<live-window>
+</live-window>
+	<hidden field="Auto Selector"/>
+</xml>
