@@ -7,10 +7,12 @@
 #the FRCVison image mashed with my ball tracking code. It Does
 #Vision Processing exclusively on the Pi, should run faster
 #then the Driver Station Version. Hopefully this script is just
-#plug and play for you but if not you will need to edit tjhis script
-#yourself to. work with your set up. I Have comments below on where
-#you should edit if need be.
-#
+#plug and play for you but if not you will need to edit this script
+#yourself for it to work with your set up. I Have comments below on where
+#you should edit if need be. Works best on a camera saturation setting 
+#around 80 or more. Also you can modify the HSV tuning on the fly using 
+#the SmartDashboard. You will need to click off the text box once you change 
+#a value for it to update
 #
 #
 import json
@@ -136,6 +138,24 @@ def readConfig():
 def TrackTheBall(frame, sd):
     BallLower= (0,103,105)
     BallUpper = (150,255,255)
+    
+    #Above is the default values if the network tables are not working
+    #or Stop working, you will need to change it for your setup In the
+    #Future I will have the default values determined by the config file
+    try:
+        HL = sd.getNumber('HL', 0)
+        HU = sd.getNumber('HU', 36)
+        SL = sd.getNumber('SL', 103)
+        SU = sd.getNumber('SU', 255)
+        VL = sd.getNumber('VL', 105)
+        VU = sd.getNumber('VU', 255)
+        BallLower = (HL,SL,VL)
+        BallUpper = (HU,SU,VU)
+        print("HSV lower:%s HSV Upper:%s" % (BallLower, BallUpper))
+    except:
+        print("Unable to grab network table values, going to default values")
+       
+        
     #if no frame arrives, the vid is over or camera is unavalible
     if frame is None:
         sd.putNumber('GettingFrameData',False)
@@ -170,7 +190,7 @@ def TrackTheBall(frame, sd):
         center = (int(M["m10"] / M["m00"]), int (M["m01"] / M["m00"]))
 
         #if the dectected contour has a radius big enough, we will send it
-        if radius > 10:
+        if radius > 15:
             #draw a circle around the target and publish values to smart dashboard
             cv2.circle(frame, (int(x), int(y)), int(radius), (255,255,8), 2)
             cv2.circle(frame, center, 3, (0,0,225), -1)
@@ -179,12 +199,12 @@ def TrackTheBall(frame, sd):
             sd.putNumber('R', radius)
         else:
             #let the RoboRio Know no target has been detected with -1
-            sd.putNumber('X', -x)
-            sd.putNumber('Y', -y)
-            sd.putNumber('R', -radius)
+            sd.putNumber('X', -1)
+            sd.putNumber('Y', -1)
+            sd.putNumber('R', -1)
             
-    print("Sent processed frame")
-    return frame
+    
+    return img
 
 
 if __name__ == "__main__":
@@ -201,7 +221,7 @@ if __name__ == "__main__":
     print("Setting up NetworkTables client for team {}".format(team))
     ntinst.startClientTeam(team)
 
-    SmartDashBoardValues = ntinst.getTable('SmartDashBoard')
+    SmartDashBoardValues = ntinst.getTable('SmartDashboard')
     
     #Start up camera stuff
     print("Connecting to camera")
@@ -232,7 +252,7 @@ if __name__ == "__main__":
             outputStream.notifyError(CvSink.getError())
             continue
         img = TrackTheBall(img, SmartDashBoardValues)
-        #print(img)
+    
         outputStream.putFrame(img)
 
 
