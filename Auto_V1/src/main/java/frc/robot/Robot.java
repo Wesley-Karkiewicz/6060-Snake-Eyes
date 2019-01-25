@@ -1,4 +1,4 @@
-package frc.robot;
+ackage frc.robot;
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 import com.ctre.phoenix.motorcontrol.can.VictorSPX;
@@ -36,9 +36,15 @@ public class Robot extends SampleRobot {
   Joystick Xbox = new Joystick(0);
  
  
-  //Global accees to center values 
+  // NetworkTable objects
   NetworkTableEntry x;
   NetworkTableEntry y;
+  NetworkTableEntry hl;
+  NetworkTableEntry hu;
+  NetworkTableEntry sl;
+  NetworkTableEntry su;
+  NetworkTableEntry vl;
+  NetworkTableEntry vu;
   NetworkTableEntry radius;
   public Robot() {
     
@@ -51,6 +57,34 @@ public class Robot extends SampleRobot {
     //RightDrive.configFactoryDefault();
     RightDrive.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative);
 
+    //Set nominal and peek voltage of the drive train motors
+    LeftDrive.configNominalOutputForward(0);
+    LeftDrive.configNominalOutputReverse(0);
+    LeftDrive.configPeakOutputForward(100);
+    LeftDrive.configPeakOutputForward(100);
+    LeftDrive.configPeakCurrentLimit(32, 50);
+    LeftDrive.configPeakCurrentDuration(75, 20);
+
+    RightDrive.configNominalOutputForward(0);
+    RightDrive.configNominalOutputReverse(0);
+    RightDrive.configPeakOutputForward(100);
+    RightDrive.configPeakOutputForward(100);
+    RightDrive.configPeakCurrentLimit(32, 50);
+    RightDrive.configPeakCurrentDuration(75, 20);
+
+    //Values to tune PID Loops on talons for velocity control
+    LeftDrive.selectProfileSlot(0, 0);
+    LeftDrive.config_kF(0,0,20);
+    LeftDrive.config_kP(0, 0, 20);
+    LeftDrive.config_kI(0,0,20);
+    LeftDrive.config_kD(0, 0, 20);
+    
+    RightDrive.selectProfileSlot(0, 0);
+    RightDrive.config_kF(0,0,20);
+    RightDrive.config_kP(0, 0, 20);
+    RightDrive.config_kI(0,0,20);
+    RightDrive.config_kD(0, 0, 20);
+    //if your drive train has 3 motor controllers per side just add another follower
     LeftDrive2.follow(LeftDrive);
     RightDrive2.follow(RightDrive);
 
@@ -60,8 +94,20 @@ public class Robot extends SampleRobot {
   x = table.getEntry("X");
   y = table.getEntry("Y");
   radius = table.getEntry("R");
-  //System.out.print(x.getType());
-  //System.out.println(y.getType());
+  hl = table.getEntry("HL");
+  hu = table.getEntry("HU");
+  sl = table.getEntry("SL");
+  su = table.getEntry("SU");
+  vl = table.getEntry("VL");
+  vu = table.getEntry("VU");
+
+  //Default values, you will need to changes these when you finish tuning
+  hl.setDefaultDouble(0);
+  hu.setDefaultDouble(0);
+  sl.setDefaultDouble(0);
+  su.setDefaultDouble(0);
+  vl.setDefaultDouble(0);
+  vu.setDefaultDouble(0);
    }
    
    
@@ -71,8 +117,8 @@ public class Robot extends SampleRobot {
   public void autonomous() {
       /*
       * This is a P Controller where the target is always 0
-      * the P normally will settle when the ball is about 3 feet away
-      * To change The Distance the Robot stops, increse or decrease NeutralOffSet
+      * the P normally will settle when the ball is about 1 foot away.
+      * To change The Distance the Robot stops, increse or decrease NeutralOffSet.
       * To affect how much the robot wants to drive towards or away from the ball
       * Increase PGain
       * 
@@ -82,20 +128,20 @@ public class Robot extends SampleRobot {
       */
 
       //Varibles for Radius P controller
-      double MaxRadius = 165;
-      double MinRadius = 15;
+      double MaxRadius = 60;
+      double MinRadius = 10;
       double MaxOutR = 1;
       double MinOutR = -1;
-      double NeutralOffSetR= 0.6;
-      double PGainR = 0.55;
+      double NeutralOffSetR= 0.25;
+      double PGainR = 0.250;
 
       //Varibles for X P controller
-      double MaxX = 580;
-      double MinX = 20;
+      double MaxX = 160;
+      double MinX = 10;
       double Maxx = 1;
       double Minx= -1;
       double NeutralOffSetX= 0;
-      double PGainX = 0.4;
+      double PGainX = 0.25;
 
       //The Varibles sent to the TalonSRX's
       double ScaledX = 0;
@@ -121,10 +167,10 @@ public class Robot extends SampleRobot {
         Double RightSpeed = ScaledRadius -  ScaledX;
         //System.out.println("ScaledX: "+ ScaledX + " ScaledRadius: " + ScaledRadius);
         System.out.println("LeftSpeed: "+ LeftSpeed + " RightSpeed: " + RightSpeed);
-        LeftDrive.set(ControlMode.PercentOutput,  LeftSpeed);
-        RightDrive.set(ControlMode.PercentOutput, RightSpeed);
+        LeftDrive.set(ControlMode.PercentOutput,  -RightSpeed);
+        RightDrive.set(ControlMode.PercentOutput, -LeftSpeed);
 
-        Timer.delay(0.005);
+        Timer.delay(0.01);
       }
     }
   
@@ -135,49 +181,48 @@ public class Robot extends SampleRobot {
     //Delcare Varibles and lists
     List<Double> ValuesLeft = new ArrayList<Double>();
     List<Double> ValuesRight = new ArrayList<Double>();
+
     double left_trigger = Xbox.getRawAxis(2);
-    
+  
     boolean Button1 = Xbox.getRawButton(1);
     boolean Button2 = Xbox.getRawButton(2);
+
     while (isOperatorControl() && isEnabled()) {
+      //Track encoder data
       int LeftEncoder = LeftDrive.getSensorCollection().getPulseWidthPosition();
       int RightEncoder = RightDrive.getSensorCollection().getPulseWidthPosition();
-
       System.out.println("Left Encoder: "+ LeftEncoder + " Right Encoder: " + RightEncoder);
       Button2 = Xbox.getRawButton(2);
       Button1 = Xbox.getRawButton(1);
 
-      //Change these to drive
+      //Change these to affect drive preformace
       double Sensitivity = 0.50;
       double Dead_band = 0.1;
-      //Above
+
+      //This Scales the Joysticks to affect power 
       double left = Xbox.getRawAxis(1) * Sensitivity;
       double Right = Xbox.getRawAxis(5) * (Sensitivity + 0.03);
 
+      //simple Deadband
       if(left > Dead_band || left < -(Dead_band)){
       left = Xbox.getRawAxis(1) * Sensitivity;
       } else {
         left = 0;
       }
 
-  
       if(Right > Dead_band || Right < -Dead_band){
         Right = Xbox.getRawAxis(5) * (Sensitivity + 0.03);
       } else {
        Right=0;
       }
       
-      //System.out.println(left + " " + Right);
-      //System.out.println(AveragedInput1(left) + " " + AveragedInput2(Right));
       left_trigger = Xbox.getRawAxis(2);
 
-
+      //Taking a rolling average of the joystick imputs to smooth out movement
       LeftDrive.set(ControlMode.PercentOutput, -RollingAverage(left,ValuesLeft,25));
       RightDrive.set(ControlMode.PercentOutput, RollingAverage(Right,ValuesRight,25));
 
-     
-      
-
+      //Modfy this to have it run your mechnism if need be
       Lift1.set(ControlMode.PercentOutput, -left_trigger);
       Lift2.set(ControlMode.PercentOutput, left_trigger);
       if(Button1){
@@ -190,7 +235,7 @@ public class Robot extends SampleRobot {
         IntakeRight.set(0);
         IntakeLeft.set(0);
       }
-      Timer.delay(0.005);
+      Timer.delay(0.01);
     }
   }
 
@@ -211,86 +256,30 @@ public class Robot extends SampleRobot {
     //Change this to what to how many steps it takes 
     double OneRotation = 10240;
      
-    //This will hold previous Rotations traveled
-    double LastLeftRT = 0;
-    double LastRightRT = 0;
-
-    double LeftRPS =0;
-    double RightRPS =0; 
-    //Values for PID loops
-    double RPS_SetPoint = 3;
-
-    double Kp = 4.9;
-    double Ki = 0.085;
-    double Kd = 0.95;
-    double Gain = 0.01;
-
-    double IError = 0;
-    double PreviousError = 0;
-    //used to keep track of time
-    double PreviousTimeLeft = Timer.getFPGATimestamp();
-    double PreviousTimeRight = Timer.getFPGATimestamp();
-
-    double count =0;
+    List<String> OutputInfo = new ArrayList<String>();
     while(isEnabled() && isTest()){
-      double CurrentTimeLeft = Timer.getFPGATimestamp();
-      double CurrentTimeRight = Timer.getFPGATimestamp();
+      double LeftMotorOutput = LeftDrive.getMotorOutputVoltage() / LeftDrive.getBusVoltage();
+      double RightMotorOutput = RightDrive.getMotorOutputVoltage() / RightDrive.getBusVoltage();
 
-      double LeftStick = Xbox.getRawAxis(1);
-      double RightStick = Xbox.getRawAxis(5);
-      LeftDrive.set(ControlMode.PercentOutput, LeftStick);
-      RightDrive.set(ControlMode.PercentOutput, RightStick);
+      double Left_error = LeftDrive.getClosedLoopError();
+      double Right_error = RightDrive.getClosedLoopError();
 
-      RightDrive2.follow(RightDrive);
-      double LeftEncoder = LeftDrive.getSensorCollection().getPulseWidthPosition() - initLeftEncoder;
-      double RightEncoder = RightDrive.getSensorCollection().getPulseWidthPosition() - initRightEncoder;
-
-      //Since the Loop updates at 200 hz, this will give us te current Rotations Traveled per second
-      double CurrentLeftRT = (LeftEncoder/OneRotation);
-      double CurrentRightRT = (RightEncoder/OneRotation);
+      LeftDrive.set(ControlMode.Velocity , 0);
+      RightDrive.set(ControlMode.Velocity, 0);
+      OutputInfo.add("Left Power:" + LeftMotorOutput + " Right Output:" + RightMotorOutput);
+      OutputInfo.add("Left Error:" + Left_error +" Right Error:"+ Right_error);
       
-      //This will get us the Current RPS of the Left and right Sides of the Bot
-      //WE need to find out how much time it took between sensor reading inorder
-      //to find out the true RPS of the wheels
-      if((CurrentLeftRT -  LastLeftRT) != 0) {
-       LeftRPS =  -((CurrentLeftRT -  LastLeftRT) * (1/(CurrentTimeLeft-PreviousTimeLeft)));
-       //System.out.println("This Took: " + 1/(CurrentTime-PreviousTime) + "Seconds");
-       PreviousTimeLeft =  CurrentTimeLeft;
-      } 
-      
-
-      if((CurrentRightRT -  LastRightRT) != 0){
-        RightRPS = (CurrentRightRT -  LastRightRT)* (1/(CurrentTimeRight-PreviousTimeRight));
-        PreviousTimeRight =  CurrentTimeRight;
-      } 
-      
-
-      double Error = RPS_SetPoint - LeftRPS;
-       IError = IError + Error;
-      double P = Error * Kp;
-      double I = IError * Ki;
-      double D = PreviousError - Error;
-
-      double Output = (P + I + D) * Gain;
-      if(count > 100){
-      LeftDrive.set(ControlMode.PercentOutput, Output);
-      System.out.println("Left RPS: "+ LeftRPS + " Left RPS_Setpoint: " + RPS_SetPoint + "Motor Power: " + Output);
-    }
-      LastLeftRT = CurrentLeftRT;
-      LastRightRT = CurrentRightRT;
-      PreviousError = Error;
-      count = count + 1;
+      System.out.println(OutputInfo);
       Timer.delay(0.005);
-    }
-
-
   }
-  
+}
  
-
+// this isn't in test lana (inside joke)
+// This fucntion will take the average of your set continuously
+//Use this to help filter stop random spikes from throwin your
+//Number Set off
   public double RollingAverage(double input, List<Double> Values, int buffer){
       double Rounded_Input = Math.round((input*1000));
-      //System.out.println(Rounded_Input);
       if(Values.size() > buffer){
         Values.remove(0);
         Values.add(Rounded_Input);
